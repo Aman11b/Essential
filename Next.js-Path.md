@@ -264,3 +264,76 @@ export default function NavLinks() {
             )}
           >
 ```
+---
+## Fetching Data
+
+### Choosing how to fetch data
+- API layer
+- APIs are an intermediary layer between your application code and database. There are a few cases where you might use an API:
+  - If you're using third-party services that provide an API.
+  - If you're fetching data from the client, you want to have an API layer that runs on the server to avoid exposing your database secrets to the client.
+- In Next.js, you can create API endpoints using Route Handlers.
+
+### Database queries
+- When you're creating a full-stack application, you'll also need to write logic to interact with your database. For relational databases like Postgres, you can do this with SQL or with an ORM.
+- There are a few cases where you have to write database queries:
+  - When creating your API endpoints, you need to write logic to interact with your database.
+  - If you are using React Server Components (fetching data on the server), you can skip the API layer, and query your database directly without risking exposing your database secrets to the client.
+
+### Using Server Components to fetch data
+- By default, Next.js applications use React Server Components. Fetching data with Server Components is a relatively new approach and there are a few benefits of using them:
+  -  Server Components support JavaScript Promises, providing a solution for asynchronous tasks like data fetching natively. You can use async/await syntax without needing useEffect, useState or other data fetching libraries.
+  -  Server Components run on the server, so you can keep expensive data fetches and logic on the server, only sending the result to the client.
+  -  Since Server Components run on the server, you can query the database directly without an additional API layer. This saves you from writing and maintaining additional code.
+### Using SQL
+- There are a few reasons why you should be using SQL
+  - SQL is the industry standard for querying relational databases (e.g. ORMs generate SQL under the hood).
+  - Having a basic understanding of SQL can help you understand the fundamentals of relational databases, allowing you to apply your knowledge to other tools.
+  - SQL is versatile, allowing you to fetch and manipulate specific data.
+  - The postgres.js library provides protection against SQL injections.
+
+- The sql function allows you to query your database
+```ts
+import postgres from 'postgres';
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+```
+- You can call sql anywhere on the server, like a Server Component.
+
+### there are two things you need to be aware of
+
+- The data requests are unintentionally blocking each other, creating a request waterfall.
+---
+### What are request waterfalls?
+- A "waterfall" refers to a sequence of network requests that depend on the completion of previous requests
+- This pattern is not necessarily bad. There may be cases where you want waterfalls because you want a condition to be satisfied before you make the next request.
+- However, this behavior can also be unintentional and impact performance.
+
+### Parallel data fetching
+- A common way to avoid waterfalls is to initiate all data requests at the same time - in parallel.
+- In JavaScript, you can use the Promise.all() or Promise.allSettled() functions to initiate all promises at the same time. For example, in data.ts, we're using Promise.all() in the fetchCardData()
+  - Start executing all data fetches at the same time, which is faster than waiting for each request to complete in a waterfall.
+  - Use a native JavaScript pattern that can be applied to any library or framework.
+> However, there is one disadvantage of relying only on this JavaScript pattern: what happens if one data request is slower than all the others?
+---
+- By default, Next.js prerenders routes to improve performance, this is called Static Rendering. So if your data changes, it won't be reflected in your dashboard.
+---
+### What is Static Rendering?
+- With static rendering, data fetching and rendering happens on the server at build time (when you deploy) or when revalidating data.
+
+> Fetching = Getting the data (from a database, API, CMS, etc.).
+
+> Rendering = Turning React components into HTML and sending it to the browser.
+
+- Whenever a user visits your application, the cached result is served. There are a couple of benefits of static rendering:
+  - Faster Websites - Prerendered content can be cached and globally distributed when deployed to platforms like Vercel. This ensures that users around the world can access your website's content more quickly and reliably.
+  - Reduced Server Load - Because the content is cached, your server does not have to dynamically generate content for each user request. This can reduce compute costs.
+  - SEO - Prerendered content is easier for search engine crawlers to index, as the content is already available when the page loads. This can lead to improved search engine rankings.
+
+- Static rendering is useful for UI with no data or data that is shared across users, such as a static blog post or a product page. It might not be a good fit for a dashboard that has personalized data which is regularly updated.
+
+### What is Dynamic Rendering?
+- With dynamic rendering, content is rendered on the server for each user at request time (when the user visits the page). There are a couple of benefits of dynamic rendering:
+   - Real-Time Data - Dynamic rendering allows your application to display real-time or frequently updated data. This is ideal for applications where data changes often.
+  - User-Specific Content - It's easier to serve personalized content, such as dashboards or user profiles, and update the data based on user interaction.
+  - Request Time Information - Dynamic rendering allows you to access information that can only be known at request time, such as cookies or the URL search parameters.
+---
