@@ -366,8 +366,24 @@ export default function Loading() {
 }
 ```
 ### Fixing the loading skeleton bug with route groups
+
 - Since loading.tsx is a level higher than /invoices/page.tsx and /customers/page.tsx in the file system, it's also applied to those pages.
 - We can change this with Route Groups. Create a new folder called /(overview) inside the dashboard folder. Then, move your loading.tsx and page.tsx files inside the folder
 - Now, the loading.tsx file will only apply to your dashboard overview page.
 - Route groups allow you to organize files into logical groups without affecting the URL path structure. When you create a new folder using parentheses (), the name won't be included in the URL path. So /dashboard/(overview)/page.tsx becomes /dashboard.
 - Here, you're using a route group to ensure loading.tsx only applies to your dashboard overview page. However, you can also use route groups to separate your application into sections (e.g. (marketing) routes and (shop) routes) or by teams for larger applications.
+
+### Streaming a component
+-  you can also be more granular and stream specific components using React Suspense.
+-  Suspense allows you to defer rendering parts of your application until some condition is met (e.g. data is loaded). You can wrap your dynamic components in Suspense. Then, pass it a fallback component to show while the dynamic component loads.
+```tsx
+  <Suspense fallback={<RevenueChartSkeleton />}>
+          <RevenueChart />
+        </Suspense>
+```
+### Deciding where to place your Suspense boundaries
+- Where you place your Suspense boundaries will depend on a few things:
+  - How you want the user to experience the page as it streams.
+  - What content you want to prioritize.
+  - If the components rely on data fetching.
+- Where you place your suspense boundaries will vary depending on your application. In general, it's good practice to move your data fetches down to the components that need it, and then wrap those components in Suspense. But there is nothing wrong with streaming the sections or the whole page if that's what your application needs.
