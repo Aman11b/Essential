@@ -183,3 +183,84 @@ export default function RootLayout({
 }
 ```
 - This is called a root layout and is required in every Next.js application. Any UI you add to the root layout will be shared across all pages in your application. You can use the root layout to modify your <html> and <body> tags, and add metadata
+
+## Navigating Between Pages
+
+### Why optimize navigation?
+- There's a full page refresh on each page navigation by using a
+### The Link component
+- Component to link between pages in your application. Link allows you to do client-side navigation with JavaScript.
+```tsx
+import Link from 'next/link';
+  <Link
+            key={link.name}
+            href={link.href}
+            className="flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3"
+          >
+            <LinkIcon className="w-6" />
+            <p className="hidden md:block">{link.name}</p>
+          </Link>
+```
+- You should now be able to navigate between the pages without seeing a full refresh.
+-  Although parts of your application are rendered on the server, there's no full page refresh, making it feel like a native web app.
+### Automatic code-splitting and prefetching
+---
+### Server Rendering
+- In Next.js, Layouts and Pages are React Server Components by default
+-  On initial and subsequent navigations, the Server Component Payload is generated on the server before being sent to the client.
+- There are two types of server rendering, based on when it happens:
+  - Prerendering happens at build time or during revalidation and the result is cached.
+  - Dynamic Rendering happens at request time in response to a client request.
+- The trade-off of server rendering is that the client must wait for the server to respond before the new route can be shown.
+-  Next.js addresses this delay by prefetching routes the user is likely to visit and performing client-side transitions.
+### Prefetching
+- Prefetching is the process of loading a route in the background before the user navigates to it.
+- This makes navigation between routes in your application feel instant, because by the time a user clicks on a link, the data to render the next route is already available client side.
+- Next.js automatically prefetches routes linked with the Link component when they enter the user's viewport.
+- How much of the route is prefetched depends on whether it's static or dynamic:
+  - Static Route: the full route is prefetched.
+  - Dynamic Route: prefetching is skipped, or the route is partially prefetched if loading.tsx is present.
+- By skipping or partially prefetching dynamic routes, Next.js avoids unnecessary work on the server for routes the users may never visit.
+-  However, waiting for a server response before navigation can give the users the impression that the app is not responding.
+-  To improve the navigation experience to dynamic routes, you can use streaming.
+### Streaming
+- Streaming allows the server to send parts of a dynamic route to the client as soon as they're ready, rather than waiting for the entire route to be rendered.
+- This means users see something sooner, even if parts of the page are still loading.
+## Client-side transitions
+- Traditionally, navigation to a server-rendered page triggers a full page load.
+- This clears state, resets scroll position, and blocks interactivity.
+- Next.js avoids this with client-side transitions using the Link component.
+- Instead of reloading the page, it updates the content dynamically by:
+    - Keeping any shared layouts and UI.
+    - Replacing the current page with the prefetched loading state or a new page if available.
+- Client-side transitions are what makes a server-rendered apps feel like client-rendered apps.
+- And when paired with prefetching and streaming, it enables fast transitions, even for dynamic routes.
+---
+### Pattern: Showing active links
+- A common UI pattern is to show an active link to indicate to the user what page they are currently on.
+-  To do this, you need to get the user's current path from the URL.
+-   Next.js provides a hook called usePathname() that you can use to check the path and implement this pattern.
+- Since usePathname() is a React hook, you'll need to turn nav-links.tsx into a Client Component.
+-  Add React's "use client" directive to the top of the file
+```tsx
+'use client';
+import { usePathname } from 'next/navigation';
+```
+```tsx
+export default function NavLinks() {
+  const pathname = usePathname();
+  // ...
+}
+```
+```tsx
+<Link
+            key={link.name}
+            href={link.href}
+            className={clsx(
+              'flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3',
+              {
+                'bg-sky-100 text-blue-600': pathname === link.href,
+              },
+            )}
+          >
+```
