@@ -336,4 +336,38 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
    - Real-Time Data - Dynamic rendering allows your application to display real-time or frequently updated data. This is ideal for applications where data changes often.
   - User-Specific Content - It's easier to serve personalized content, such as dashboards or user profiles, and update the data based on user interaction.
   - Request Time Information - Dynamic rendering allows you to access information that can only be known at request time, such as cookies or the URL search parameters.
+## With dynamic rendering, your application is only as fast as your slowest data fetch.
 ---
+###  how you can improve the user experience when there are slow data requests?
+
+### What is streaming?
+- Streaming is a data transfer technique that allows you to break down a route into smaller "chunks" and progressively stream them from the server to the client as they become ready.
+- By streaming, you can prevent slow data requests from blocking your whole page. This allows the user to see and interact with parts of the page without waiting for all the data to load before any UI can be shown to the user.
+- There are two ways you implement streaming in Next.js:
+  - At the page level, with the loading.tsx file (which creates <Suspense> for you).
+  - At the component level, with <Suspense> for more granular control.
+
+### Streaming a whole page with loading.tsx
+```tsx
+export default function Loading() {
+  return <div>Loading...</div>;
+}
+```
+- A few things are happening here:
+  - loading.tsx is a special Next.js file built on top of React Suspense. It allows you to create fallback UI to show as a replacement while page content loads.
+  - Since SideNav is static, it's shown immediately. The user can interact with <SideNav> while the dynamic content is loading.
+  - The user doesn't have to wait for the page to finish loading before navigating away (this is called interruptable navigation).
+### Adding loading skeletons
+```tsx
+import DashboardSkeleton from '@/app/ui/skeletons';
+ 
+export default function Loading() {
+  return <DashboardSkeleton />;
+}
+```
+### Fixing the loading skeleton bug with route groups
+- Since loading.tsx is a level higher than /invoices/page.tsx and /customers/page.tsx in the file system, it's also applied to those pages.
+- We can change this with Route Groups. Create a new folder called /(overview) inside the dashboard folder. Then, move your loading.tsx and page.tsx files inside the folder
+- Now, the loading.tsx file will only apply to your dashboard overview page.
+- Route groups allow you to organize files into logical groups without affecting the URL path structure. When you create a new folder using parentheses (), the name won't be included in the URL path. So /dashboard/(overview)/page.tsx becomes /dashboard.
+- Here, you're using a route group to ensure loading.tsx only applies to your dashboard overview page. However, you can also use route groups to separate your application into sections (e.g. (marketing) routes and (shop) routes) or by teams for larger applications.
