@@ -602,4 +602,110 @@ const handleSearch = useDebouncedCallback((term) => {
 }, 300);
 ```
 - This function will wrap the contents of handleSearch, and only run the code after a specific time once the user has stopped typing (300ms).
+
+## Adding pagination
+
+- After introducing the search feature, you'll notice the table displays only 6 invoices at a time. This is because the fetchFilteredInvoices() function in data.ts returns a maximum of 6 invoices per page.
+- Adding pagination allows users to navigate through the different pages to view all the invoices.
+- Navigate to the <Pagination/> component and you'll notice that it's a Client Component. You don't want to fetch data on the client as this would expose your database secrets (remember, you're not using an API layer). Instead, you can fetch the data on the server, and pass it to the component as a prop.
+```tsx
+// ...
+import { fetchInvoicesPages } from '@/app/lib/data';
+ 
+export default async function Page(
+  props: {
+    searchParams?: Promise<{
+      query?: string;
+      page?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const query = searchParams?.query || '';
+  const currentPage = Number(searchParams?.page) || 1;
+  const totalPages = await fetchInvoicesPages(query);
+ 
+  return (
+    // ...
+  );
+}
+```
+- fetchInvoicesPages returns the total number of pages based on the search query. For example, if there are 12 invoices that match the search query, and each page displays 6 invoices, then the total number of pages would be 2.
+```tsx
+  <Pagination totalPages={totalPages} />
+```
+- Navigate to the Pagination component and import the usePathname and useSearchParams hooks. We will use this to get the current page and set the new page. Make sure to also uncomment the code in this component. Your application will break temporarily as you haven't implemented the <Pagination/> logic yet. Let's do that now!
+```tsx
+'use client';
+ 
+import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import clsx from 'clsx';
+import Link from 'next/link';
+import { generatePagination } from '@/app/lib/utils';
+import { usePathname, useSearchParams } from 'next/navigation';
+ 
+export default function Pagination({ totalPages }: { totalPages: number }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
+ 
+  // ...
+}
+```
+- Next, create a new function inside the <Pagination> Component called createPageURL. Similarly to the search, you'll use URLSearchParams to set the new page number, and pathName to create the URL string.
+```tsx
+'use client';
+ 
+import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import clsx from 'clsx';
+import Link from 'next/link';
+import { generatePagination } from '@/app/lib/utils';
+import { usePathname, useSearchParams } from 'next/navigation';
+ 
+export default function Pagination({ totalPages }: { totalPages: number }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
+ 
+  const createPageURL = (pageNumber: number | string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', pageNumber.toString());
+    return `${pathname}?${params.toString()}`;
+  };
+ 
+  // ...
+}
+```
+- createPageURL creates an instance of the current search parameters.
+- Then, it updates the "page" parameter to the provided page number.
+- Finally, it constructs the full URL using the pathname and updated search parameters.
+
+- The rest of the Pagination component deals with styling and different states (first, last, active, disabled, etc). We won't go into detail for this course, but feel free to look through the code to see where createPageURL is being called.
+
+Finally, when the user types a new search query, you want to reset the page number to 1. You can do this by updating the handleSearch function in your <Search> component:
+```tsx
+'use client';
+ 
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useDebouncedCallback } from 'use-debounce';
+ 
+export default function Search({ placeholder }: { placeholder: string }) {
+  const searchParams = useSearchParams();
+  const { replace } = useRouter();
+  const pathname = usePathname();
+ 
+  const handleSearch = useDebouncedCallback((term) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', '1');
+    if (term) {
+      params.set('query', term);
+    } else {
+      params.delete('query');
+    }
+    replace(`${pathname}?${params.toString()}`);
+  }, 300);
+ 
+```
 ---
+
